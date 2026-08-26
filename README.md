@@ -10,8 +10,9 @@ Uma interface experimental que usa a câmera e visão computacional para transfo
 - Rastreamento de até duas mãos com 21 pontos por mão.
 - Esqueleto visual sobre o vídeo ao vivo.
 - Leitura contínua da flexão de cada dedo.
-- Robô lateral com cabeça, braços e pernas articulados.
-- Suavização dos movimentos para reduzir tremores.
+- Robô humanoide branco, preto e azul construído em camadas articuladas.
+- Nove eixos de movimento: cabeça, ombros, cotovelos, quadris e joelhos.
+- Suavização adaptativa para reduzir tremores sem perder resposta.
 - Telemetria de FPS, latência, confiança e mão detectada.
 - Interface responsiva para desktop e celular.
 - Processamento local: os frames da câmera não são enviados para um servidor do projeto.
@@ -20,11 +21,11 @@ Uma interface experimental que usa a câmera e visão computacional para transfo
 
 | Dedo | Parte do robô | Movimento |
 | --- | --- | --- |
-| Polegar | Perna esquerda | Flexão do dedo → rotação da perna |
-| Indicador | Braço esquerdo | Flexão do dedo → rotação do braço |
-| Médio | Cabeça | Deslocamento lateral → inclinação da cabeça |
-| Anelar | Braço direito | Flexão do dedo → rotação do braço |
-| Mínimo | Perna direita | Flexão do dedo → rotação da perna |
+| Polegar | Perna esquerda | Flexão → quadril e joelho |
+| Indicador | Braço esquerdo | Flexão → ombro e cotovelo |
+| Médio | Cabeça | Lateral → eixo X; flexão/altura → eixo Y |
+| Anelar | Braço direito | Flexão → ombro e cotovelo |
+| Mínimo | Perna direita | Flexão → quadril e joelho |
 
 ## Rodando localmente
 
@@ -47,9 +48,9 @@ npm run build
 
 1. O MediaPipe Hand Landmarker encontra 21 pontos normalizados em cada mão.
 2. O canvas espelha o vídeo e desenha conexões e pontos por grupo de dedos.
-3. Ângulos das articulações PIP e DIP viram um valor de flexão entre `0` e `1`.
-4. Cada valor alimenta uma parte do robô de acordo com o mapa acima.
-5. Uma interpolação suaviza a pose antes da renderização.
+3. Ângulos das articulações e alcance ponta–base viram um valor de flexão entre `0` e `1`.
+4. Cada dedo alimenta duas articulações; o dedo médio também fornece orientação X/Y da cabeça.
+5. Uma interpolação adaptativa suaviza a pose: movimentos pequenos filtram tremores e movimentos amplos respondem mais rápido.
 
 O MVP roda inteiramente no cliente e não exige backend, login ou armazenamento.
 

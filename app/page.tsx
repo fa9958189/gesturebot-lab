@@ -1,7 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HandLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import { RobotFigure } from './components/RobotFigure';
+import {
+  fingerCurls,
+  NEUTRAL_POSE,
+  poseFromHand,
+  smoothPose,
+  type MotionPose,
+} from './lib/motion';
 
 const WASM_ROOT = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
@@ -14,59 +22,15 @@ const HAND_CONNECTIONS: [number, number][] = [
   [13, 17], [17, 18], [18, 19], [19, 20], [0, 17],
 ];
 
-const FINGER_JOINTS = [
-  [1, 2, 3, 4],
-  [5, 6, 7, 8],
-  [9, 10, 11, 12],
-  [13, 14, 15, 16],
-  [17, 18, 19, 20],
-];
-
 const fingers = [
-  { key: '01', label: 'Polegar', action: 'Perna E', color: 'lime' },
-  { key: '02', label: 'Indicador', action: 'Braço E', color: 'amber' },
-  { key: '03', label: 'Médio', action: 'Cabeça', color: 'cyan' },
-  { key: '04', label: 'Anelar', action: 'Braço D', color: 'amber' },
-  { key: '05', label: 'Mínimo', action: 'Perna D', color: 'lime' },
+  { key: '01', label: 'Polegar', action: 'Quadril + joelho E', color: 'lime' },
+  { key: '02', label: 'Indicador', action: 'Ombro + cotovelo E', color: 'amber' },
+  { key: '03', label: 'Médio', action: 'Cabeça X / Y', color: 'cyan' },
+  { key: '04', label: 'Anelar', action: 'Ombro + cotovelo D', color: 'amber' },
+  { key: '05', label: 'Mínimo', action: 'Quadril + joelho D', color: 'lime' },
 ];
 
 type Phase = 'idle' | 'loading' | 'running' | 'error';
-type Pose = { head: number; leftArm: number; rightArm: number; leftLeg: number; rightLeg: number };
-
-const NEUTRAL_POSE: Pose = { head: 0, leftArm: 10, rightArm: -10, leftLeg: 2, rightLeg: -2 };
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function angle(a: NormalizedLandmark, b: NormalizedLandmark, c: NormalizedLandmark) {
-  const ab = { x: a.x - b.x, y: a.y - b.y, z: (a.z ?? 0) - (b.z ?? 0) };
-  const cb = { x: c.x - b.x, y: c.y - b.y, z: (c.z ?? 0) - (b.z ?? 0) };
-  const dot = ab.x * cb.x + ab.y * cb.y + ab.z * cb.z;
-  const magA = Math.hypot(ab.x, ab.y, ab.z);
-  const magC = Math.hypot(cb.x, cb.y, cb.z);
-  return Math.acos(clamp(dot / Math.max(magA * magC, 0.00001), -1, 1)) * (180 / Math.PI);
-}
-
-function fingerCurls(landmarks: NormalizedLandmark[]) {
-  return FINGER_JOINTS.map(([mcp, pip, dip, tip], index) => {
-    const first = angle(landmarks[mcp], landmarks[pip], landmarks[dip]);
-    const second = angle(landmarks[pip], landmarks[dip], landmarks[tip]);
-    const average = index === 0 ? first * 0.65 + second * 0.35 : (first + second) / 2;
-    return clamp((168 - average) / 105, 0, 1);
-  });
-}
-
-function poseFromHand(landmarks: NormalizedLandmark[], curls: number[]): Pose {
-  const middleTravel = (landmarks[12].x - landmarks[9].x) * 420;
-  return {
-    head: clamp(middleTravel, -28, 28),
-    leftArm: -28 + curls[1] * 88,
-    rightArm: 28 - curls[3] * 88,
-    leftLeg: -10 + curls[0] * 42,
-    rightLeg: 10 - curls[4] * 42,
-  };
-}
 
 function pointColor(index: number) {
   if (index <= 4) return '#ccf46f';
@@ -125,31 +89,6 @@ function drawFrame(
   ctx.shadowBlur = 0;
 }
 
-function RobotFigure({ pose, live }: { pose: Pose; live: boolean }) {
-  const robotStyle = {
-    '--head-angle': `${pose.head}deg`,
-    '--left-arm-angle': `${pose.leftArm}deg`,
-    '--right-arm-angle': `${pose.rightArm}deg`,
-    '--left-leg-angle': `${pose.leftLeg}deg`,
-    '--right-leg-angle': `${pose.rightLeg}deg`,
-  } as CSSProperties;
-
-  return (
-    <div className={`robot ${live ? 'is-live' : ''}`} style={robotStyle} aria-label="Robô articulado controlado pelos dedos">
-      <div className="robot-halo" />
-      <div className="robot-head"><div className="robot-face"><span /><span /></div></div>
-      <div className="robot-neck" />
-      <div className="robot-torso"><div className="robot-core" /></div>
-      <div className="robot-arm robot-arm-left"><span className="robot-joint" /><span className="robot-limb" /><span className="robot-hand" /></div>
-      <div className="robot-arm robot-arm-right"><span className="robot-joint" /><span className="robot-limb" /><span className="robot-hand" /></div>
-      <div className="robot-hips" />
-      <div className="robot-leg robot-leg-left"><span className="robot-limb" /><span className="robot-foot" /></div>
-      <div className="robot-leg robot-leg-right"><span className="robot-limb" /><span className="robot-foot" /></div>
-      <div className="robot-floor" />
-    </div>
-  );
-}
-
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -162,11 +101,11 @@ export default function Home() {
   const lastUiUpdateRef = useRef(0);
   const frameCountRef = useRef(0);
   const fpsStartRef = useRef(0);
-  const poseRef = useRef<Pose>({ ...NEUTRAL_POSE });
+  const poseRef = useRef<MotionPose>({ ...NEUTRAL_POSE });
 
   const [phase, setPhase] = useState<Phase>('idle');
   const [error, setError] = useState('');
-  const [pose, setPose] = useState<Pose>(NEUTRAL_POSE);
+  const [pose, setPose] = useState<MotionPose>(NEUTRAL_POSE);
   const [curls, setCurls] = useState<number[]>([0, 0, 0, 0, 0]);
   const [telemetry, setTelemetry] = useState({ hands: 0, fps: 0, latency: 0, confidence: 0, side: '—' });
 
@@ -273,10 +212,7 @@ export default function Home() {
           const activeLandmarks = result.landmarks[0];
           const nextCurls = activeLandmarks ? fingerCurls(activeLandmarks) : [0, 0, 0, 0, 0];
           const target = activeLandmarks ? poseFromHand(activeLandmarks, nextCurls) : NEUTRAL_POSE;
-          const smooth = 0.22;
-          (Object.keys(target) as (keyof Pose)[]).forEach((key) => {
-            poseRef.current[key] += (target[key] - poseRef.current[key]) * smooth;
-          });
+          poseRef.current = smoothPose(poseRef.current, target);
 
           if (now - lastUiUpdateRef.current >= 80) {
             const elapsed = Math.max(now - fpsStartRef.current, 1);
@@ -377,7 +313,7 @@ export default function Home() {
               </div>
             )}
 
-            <div className="stage-note"><span>01</span>{isRunning ? 'Feche e abra cada dedo para mover o robô' : 'Mantenha mãos e pulsos visíveis'}</div>
+            <div className="stage-note"><span>01</span>{isRunning ? 'Dobre os dedos; mova o médio para orientar a cabeça' : 'Mantenha mãos e pulsos visíveis'}</div>
           </div>
         </div>
 
@@ -390,6 +326,11 @@ export default function Home() {
           <div className="robot-stage">
             <div className="axis-label axis-y">Y</div><div className="axis-label axis-x">X</div>
             <RobotFigure pose={pose} live={telemetry.hands > 0} />
+            <div className="head-readout" aria-label="Orientação da cabeça">
+              <span>Cabeça</span>
+              <strong>X {Math.round(pose.headYaw)}°</strong>
+              <strong>Y {Math.round(pose.headPitch)}°</strong>
+            </div>
             <div className="robot-caption"><span>Sincronia</span><strong>{String(sync).padStart(2, '0')}%</strong></div>
           </div>
 
