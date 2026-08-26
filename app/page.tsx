@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HandLandmarker, NormalizedLandmark } from '@mediapipe/tasks-vision';
+import Link from 'next/link';
 import { RobotFigure } from './components/RobotFigure';
 import {
   fingerCurls,
@@ -276,6 +277,7 @@ export default function Home() {
 
         <div className="top-actions">
           <button className="ghost-button" type="button" onClick={() => document.querySelector('#mapeamento')?.scrollIntoView({ behavior: 'smooth' })}>Mapeamento</button>
+          <Link href="/guia">Guia</Link>
           <button className={`power-button ${isRunning ? 'stop' : ''}`} type="button" onClick={startTracking} disabled={isLoading} aria-pressed={isRunning}>
             <span>{isRunning ? '■' : '↗'}</span> {isLoading ? 'Carregando' : isRunning ? 'Parar' : 'Iniciar'}
           </button>

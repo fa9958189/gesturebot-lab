@@ -10,9 +10,10 @@ Uma interface experimental que usa a câmera e visão computacional para transfo
 - Rastreamento de até duas mãos com 21 pontos por mão.
 - Esqueleto visual sobre o vídeo ao vivo.
 - Leitura contínua da flexão de cada dedo.
-- Robô humanoide branco, preto e azul construído em camadas articuladas.
+- Robô humanoide branco, preto e azul desenhado em SVG vetorial, sem recortes ou peças soltas.
 - Nove eixos de movimento: cabeça, ombros, cotovelos, quadris e joelhos.
-- Suavização adaptativa para reduzir tremores sem perder resposta.
+- Modo de movimento fácil: pequenas flexões já ativam braços e pernas.
+- Suavização adaptativa mais rápida para reduzir tremores sem perder resposta.
 - Telemetria de FPS, latência, confiança e mão detectada.
 - Interface responsiva para desktop e celular.
 - Processamento local: os frames da câmera não são enviados para um servidor do projeto.
@@ -37,6 +38,8 @@ npm run dev
 ```
 
 Abra `http://localhost:3000`, clique em **Iniciar** e libere a câmera.
+
+O guia visual também fica disponível em `http://localhost:3000/guia`.
 
 Para validar a versão de produção:
 
